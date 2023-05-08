@@ -34,4 +34,4 @@
 .DS_Store
 
 # Saved files
-.txt
+*.txt
