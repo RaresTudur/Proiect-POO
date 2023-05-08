@@ -1,35 +1,13 @@
 #include <iostream>
-#include <cstring>
 #include <climits>
+#include <fstream>
+#include <string>
+#include <vector>
 using namespace std;
 
 
-int calculate_attack_damage(int character_damage,int mob_damage_protection) {
-    float damage_multiplier = 0.8;
-    if (rand() % 100 < 10)
-    {
-        damage_multiplier = 1.5;
-    }
-    else if (rand() % 100 < 5)
-    {
-        return 0;
-    }
-    int attack_damage = (int)(character_damage * damage_multiplier) - mob_damage_protection;
-    return attack_damage > 0 ? attack_damage : 0;
-}
-int calculate_attack_damage_mob(int character_protection,int mob_damage) {
-    float damage_multiplier = 0.1;
-    if (rand() % 100 < 10)
-    {
-        damage_multiplier = 0.3;
-    }
-    else if (rand() % 100 < 5)
-    {
-        return 0;
-    }
-    int attack_damage = (int)(mob_damage * damage_multiplier) - character_protection;
-    return attack_damage > 0 ? attack_damage : 0;
-}
+
+// Attack functions
 
 int calculate_attack_ability(int damage_ability,int protection)
 {
@@ -88,100 +66,92 @@ int Mob::get_magic_protection() const
     return this->magic_protection;
 }
 
-class String
-{
-    char *point;
-public:
-    String()
-    {
-        point = nullptr;
-    }
-    String(const char* x)
-    {
-        this -> point = new char [strlen(x)];
-        strcpy(point,x);
-    }
-    String(const String &sir)
-    {
-        this->point = new char[strlen(sir.point)];
-        strcpy(this->point,sir.point);
-    }
-    ~String()
-    {
-        if(this->point != nullptr)
-        {
-            delete [] this->point;
-        }
-    }
-    char get_String() const;
-    String & operator=(const String &sir)
-    {
-        if(this->point != nullptr)
-        {
-            delete [] this->point;
-        }
-        this->point = new char[strlen(sir.point)];
-        strcpy(this->point,sir.point);
-        return *this;
-    }
-    String & operator=(const char sir[])
-    {
-        if(this->point != nullptr)
-        {
-            delete [] this->point;
-        }
-        this->point = new char[strlen(sir)];
-        strcpy(this->point,sir);
-        return *this;
-    }
-    String & operator =(String && sir)
-    {
-        this->point = sir.point; // muta nu copie
-        sir.point = nullptr;
-        return *this;
-    }
-    friend ostream & operator << (ostream &out, const String &x);
-    friend istream & operator >> (istream &in,  String &x);
-};
-
-String enter_name()
+string enter_name()
 {
     cout << "Enter your character's name\n";
-    String nume;
+    string nume;
     cin >> ws >> nume;
     return nume;
 }
 
+class Item {
+public:
+    virtual ~Item() = default;
+    virtual string getName() const = 0;
+    virtual string getDescription() const = 0;
+    virtual string requiredClass() const = 0;
+};
 
-char String::get_String() const
+class Inventory {
+    
+    static int MAX_CAPACITY;
+protected:
+    vector <Item*> items;
+
+public:
+    int get_size() const;
+    Item* getItem(int poz);
+    vector <Item*> getitems();
+    bool add_item(Item* item);
+    bool remove_item(Item* item);
+};
+
+int Inventory::MAX_CAPACITY = 10;
+
+vector <Item*> Inventory::getitems()
 {
-    return *this->point;
+    return this->items;
 }
 
-ostream & operator <<(ostream &out,const String &x)
+Item* Inventory::getItem(int poz)
 {
-    cout << x.point;
-    return out;
+    if (poz < 0 || poz >= items.size())
+    {
+            return nullptr;
+    }
+    return this->items[poz];
 }
 
-istream & operator >> (istream &in, String &x)
+int Inventory::get_size() const
 {
-    char *temp = new char[100];
-    in.getline(temp,100);
-    x.point = new char[strlen(temp)];
-    strcpy(x.point,temp);
-    delete [] temp;
-    return in;
+    return this->MAX_CAPACITY;
 }
+
+bool Inventory::add_item(Item* item)
+{
+    if (this->items.size() < this->MAX_CAPACITY)
+    {
+        this->items.push_back(item);
+        return true;
+    }
+    else
+    {
+        cout << "Inventory is full\n";
+        return false;
+    }
+}
+
+bool Inventory::remove_item(Item* item)
+{
+    auto it = find(this->items.begin(), this->items.end(), item);
+    if (it != this->items.end())
+    {
+        this->items.erase(it);
+        return true;
+    }
+    return false;
+}
+
+
 
 class Ability
 {
-    String ability_name;
+    string ability_name;
     int damage;
 public:
     Ability();
-    Ability(const String name,int dmg);
-    String get_name() const
+    Ability(const string name,int dmg);
+    string get_name() const
     {
         return this->ability_name;
     }
@@ -197,18 +167,19 @@ public:
     {
         this->ability_name = name;
     }
-    void setname(const String &name)
+    void setname(const string &name)
     {
         this->ability_name = name;
     }
     friend ostream & operator << (ostream &out, const Ability &x);
     friend istream & operator >> (istream &in, Ability &x);
+    friend ifstream & operator >> (ifstream &input, Ability &x);
     ~Ability() = default;
 };
 
 ostream & operator <<(ostream &out,const Ability &x)
 {
-    cout << x.ability_name << " " << x.damage << "\n";
+    out << x.ability_name << " " << x.damage << "\n";
     return out;
 }
 
@@ -227,38 +198,142 @@ istream & operator >> (istream &in, Ability &x)
     return in;
 }
 
+ifstream & operator >> (ifstream &input, Ability &x)
+{
+    input >> ws >> x.ability_name;
+    input >> x.damage;
+    return input;
+}
+
 Ability::Ability()
 {
     this->ability_name = "Simple";
     this->damage = 0;
 }
 
-Ability::Ability(const String name,int dmg)
+Ability::Ability(const string name,int dmg)
 {
     this->ability_name = name;
     this->damage = dmg;
 }
 
-class Weapon
+class Armor: public Item
 {
-    String name_weapon;
-    int attack;
+    string armor_name;
+    string description;
+    int armor_value;
+    string requiredclass;
 public:
-    Weapon();
-    Weapon(String name,int atk): name_weapon(name),attack(atk){}
-    Weapon(const char* name,int atk):name_weapon(name),attack(atk){}
-    String get_name() const;
-    int get_attack_value() const;
-    friend ostream & operator << (ostream &out, const Weapon &x);
-    friend istream & operator >> (istream &in, Weapon &x);
+    Armor(string name = "", string description = "",int value = 0, string rC = ""): armor_name(name),description(description),armor_value(value),requiredclass(rC){}
+    string getName() const override;
+    int get_armor_value() const;
+    string getDescription() const override;
+    string requiredClass() const override;
+    friend ostream & operator << (ostream &out, const Armor &x);
+    friend ofstream & operator << (ofstream &output, const Armor &x);
+    friend istream & operator >> (istream &in, Armor &x);
+    friend ifstream & operator >> (ifstream &input, Armor &x);
 };
+
+string Armor::getDescription() const
+{
+    return this->description;
+}
+
+string Armor::requiredClass() const
+{
+    return this->requiredclass;
+}
+
+string Armor::getName() const
+{
+    return this->armor_name;
+}
+
+int Armor::get_armor_value() const
+{
+    return this->armor_value;
+}
+
+ostream & operator << (ostream &out, const Armor &x)
+{
+    out << "The name and the armor value of your armor is\n";
+    out << x.armor_name << " " << x.armor_value << "\n";
+    return out;
+}
+ofstream & operator << (ofstream &output, const Armor &x)
+{
+    output << x.armor_name.c_str() << " " << x.armor_value << "\n";
+    return output;
+}
+
+istream & operator >> (istream &in, Armor &x)
+{
+    cout << "Enter the name of your armor\n";
+    in >> ws >> x.armor_name;
+    cout << "Enter the defensive value of your armor\n";
+    while (!(in >> x.armor_value) || x.armor_value < 1 || x.armor_value > INT_MAX)
+    {
+        cout << "Invalid input. The defensive value of your armor must be a positive integer between 1 and 40000." << "\n";
+        in.clear();
+        in.ignore(INT_MAX, '\n');
+        cout << "Enter the defensive value of your armor\n";
+    }
+    return in;
+}
+
+ifstream & operator >> (ifstream &input, Armor &x)
+{
+    input >> ws >> x.armor_name;
+    input >> ws >> x.armor_value;
+    return input;
+}
+
+class Weapon :public Item
+{
+    string name_weapon;
+    string description;
+    int attack;
+    string reqClass;
+public:
+    Weapon(string name = "", string description = "", int atk = 0, string rC = ""): name_weapon(name),description(description),attack(atk),reqClass(rC){}
+    string getName() const override
+    {
+            return this->name_weapon;
+    }
+    int get_attack_value() const;
+    string getDescription() const override;
+    string requiredClass() const override;
+    friend ostream & operator << (ostream &out, const Weapon &x);
+    friend ofstream & operator << (ofstream &output, const Weapon &x);
+    friend istream & operator >> (istream &in, Weapon &x);
+    friend ifstream & operator >> (ifstream &input, Weapon &x);
+    ~Weapon() = default;
+};
+
+string Weapon::getDescription() const
+{
+    return this->description;
+}
+
+string Weapon::requiredClass() const
+{
+    return this->reqClass;
+}
 
 ostream & operator << (ostream &out, const Weapon &x)
 {
-    cout << "The name and the attack of your weapon is\n";
-    cout << x.name_weapon << " " << x.attack << "\n";
+    out << "The name and the attack of your weapon is\n";
+    out << x.name_weapon << " " << x.description << " " << x.attack << " " << x.requiredClass() << "\n";
     return out;
 }
+
+ofstream & operator << (ofstream &output, const Weapon &x)
+{
+    output << x.name_weapon.c_str() << " " << x.attack << "\n";
+    return output;
+}
+
 
 istream & operator >> (istream &in, Weapon &x)
 {
@@ -275,16 +350,13 @@ istream & operator >> (istream &in, Weapon &x)
     return in;
 }
 
-Weapon::Weapon()
+ifstream & operator >> (ifstream &input, Weapon &x)
 {
-    this->name_weapon = "Basic Weapon";
-    this->attack = 0;
+    input >> ws >> x.name_weapon;
+    input >> ws >> x.attack;
+    return input;
 }
 
-String Weapon::get_name() const
-{
-    return this->name_weapon;
-}
 
 int Weapon::get_attack_value() const
 {
@@ -294,8 +366,9 @@ int Weapon::get_attack_value() const
 class Player
 {
     int health,defense,magic,strength,speed,intelligence;
-    String name;
+    string name;
     Weapon weapon;
+    Inventory inventory;
     int num_abilities;
     Ability *abilities;
 public:
@@ -304,7 +377,7 @@ public:
         this->abilities = new Ability[num_abilities];
         add_ability(0, "Basic",0);
     }
-    Player(const char* nume,const int& hp,const int & df,const int& Mp,const int& St,const int& Sp,const int& It, const char* name_weapon,int atk,int num_ab):name(nume),health(hp),magic(Mp),strength(St),speed(Sp),intelligence(It),weapon(name_weapon,atk),num_abilities(num_ab)
+    Player(const string nume,const int& hp,const int & df,const int& Mp,const int& St,const int& Sp,const int& It, const char* name_weapon, string description,int atk,int num_ab):name(nume),health(hp),magic(Mp),strength(St),speed(Sp),intelligence(It),weapon(name_weapon,description,atk),num_abilities(num_ab)
     {
         if (num_abilities <= 0)
         {
@@ -313,16 +386,7 @@ public:
         }
         this->abilities = new Ability[num_abilities];
     }
-    Player(const String nume,const int& hp,const int & df,const int& Mp,const int& St,const int& Sp,const int& It, const char* name_weapon,int atk,int num_ab):name(nume),health(hp),magic(Mp),strength(St),speed(Sp),intelligence(It),weapon(name_weapon,atk),num_abilities(num_ab)
-    {
-        if (num_abilities <= 0)
-        {
-            cout << "Invalid number of abilities.\n";
-            return;
-        }
-        this->abilities = new Ability[num_abilities];
-    }
-    char get_mume() const;
+    string get_mume() const;
     int get_hp() const;
     int get_defense() const;
     int get_magic() const;
@@ -330,6 +394,7 @@ public:
     int get_speed() const;
     int get_intelligence() const;
     int get_number_of_abilities() const;
+    Inventory getInventory() const;
     Ability get_ability(int index) const;
     void set_name(const char name[]);
     void set_magic(const int& magic = 0);
@@ -341,16 +406,26 @@ public:
     void set_num_abilities(const int num);
     void add_ability(const int index,const char* name,const int damage);
     friend ostream & operator << (ostream &out, const Player &x);
+    friend ofstream & operator << (ofstream &output, const Player &x);
     friend istream & operator >> (istream &in,  Player &x);
+    friend ifstream& operator>>(ifstream& input, Player &x);
     ~Player()
     {
+        int Size_inv = inventory.get_size();
+        for (int i = 0; i < Size_inv; i++)
+        {
+            Item* item = inventory.getItem(i); // reference to the pointer so no new item
+            if(item != nullptr)
+            {
+                delete item;
+            }
+        }
         if(abilities != nullptr)
         {
             delete [] abilities;
         }
     }
 };
-
 
 void Player::add_ability(const int index, const char* name, const int damage)
 {
@@ -361,29 +436,53 @@ void Player::add_ability(const int index, const char* name, const int damage)
     }
 }
 
+ofstream & operator << (ofstream &output, const Player &x)
+{
+    output << x.name.c_str() << "\n";
+    output << x.health << "\n";
+    output << x.defense << "\n";
+    output << x.strength << "\n";
+    output << x.magic << "\n";
+    output << x.speed << "\n";
+    output << x.intelligence << "\n";
+    output << x.weapon;
+    output << x.num_abilities << "\n";
+    for(int i = 0; i < x.num_abilities; i++)
+    {
+        output << x.abilities[i];
+    }
+    return output;
+
+}
+
 ostream & operator << (ostream &out, const Player &x)
 {
-    cout << "Name: " << x.name << "\n";
-    cout << "Health: " << x.health << "\n";
-    cout << "Defense: " << x.defense << "\n";
-    cout << "Strength: " << x.strength << "\n";
-    cout << "Magic Damage: " << x.magic << "\n";
-    cout << "Speed: " << x.speed << "\n";
-    cout << "Intelligence: " << x.intelligence << "\n";
-    cout << x.weapon;
-    cout << "Number of abilities: " << x.num_abilities << "\n";
-    cout << "The name and damage of each ability : \n";
+    out << "Name: " << x.name << "\n";
+    out << "Health: " << x.health << "\n";
+    out << "Defense: " << x.defense << "\n";
+    out << "Strength: " << x.strength << "\n";
+    out << "Magic Damage: " << x.magic << "\n";
+    out << "Speed: " << x.speed << "\n";
+    out << "Intelligence: " << x.intelligence << "\n";
+    out << x.weapon;
+    out << "Number of abilities: " << x.num_abilities << "\n";
+    out << "The name and damage of each ability : \n";
     for(int i = 0; i < x.num_abilities; i++)
     {
         cout << x.abilities[i];
     }
+    out << "Items in inventory:\n";
+    for(auto item: x.getInventory().getitems())
+    {
+        out << item << "\n";
+    }
     return out;
 }
-istream & operator >> (istream &in,  Player &x)
+istream & operator >> (istream &cin,  Player &x)
 {
     cout << "Enter this values for your character\n";
     cout << "Enter the name of your character\n";
-    cin >> ws >> x.name;
+    getline (cin, x.name);
     cout << "Enter the health of your character\n";
     while (!(cin >> x.health) || x.health < 1 || x.health > INT_MAX)
     {
@@ -450,7 +549,32 @@ istream & operator >> (istream &in,  Player &x)
     {
         cin >> x.abilities[i];
     }
-    return in;
+    return cin;
+}
+
+ifstream& operator>>(ifstream& input, Player &x)
+{
+    getline(input,x.name);
+    cout << x.name;
+    input >> x.health;
+    cout << x.health;
+    input >> x.defense;
+    input >> x.magic;
+    input >> x.speed;
+    input >> x.strength;
+    input >> x.intelligence;
+    input >> x.weapon;
+    input >> x.num_abilities;
+    if(x.abilities != nullptr)
+    {
+        delete [] x.abilities;
+    }
+    x.abilities = new Ability[x.num_abilities];
+    for(int i = 0; i < x.num_abilities; i++)
+    {
+        input >> x.abilities[i];
+    }
+    return input;
 }
 
 
@@ -520,9 +644,9 @@ int Player::get_defense() const
 {
     return this->defense;
 }
-char Player::get_mume() const
+string Player::get_mume() const
 {
-    return this->name.get_String();
+    return this->name;
 }
 int Player::get_magic() const
 {
@@ -546,6 +670,11 @@ int Player::get_number_of_abilities() const
     return this->num_abilities;
 }
 
+Inventory Player::getInventory() const
+{
+    return this->inventory;
+}
+
 Ability Player::get_ability(int index) const
 {
     if(this->abilities == nullptr)
@@ -564,15 +693,7 @@ Ability Player::get_ability(int index) const
 class Warrior: public Player
 {
 public:
-    Warrior():Player("John Doe",150,10,0,10,5,2,"Bronze Sword",10,1)
-    {
-        add_ability(0, "Strong Attack", 300);
-    }
-    Warrior(const char name[]):Player(name,150,10, 0, 10, 5, 2,"Bronze Sword",10,1)
-    {
-        add_ability(0, "Strong Attack", 300);
-    }
-    Warrior(const String name):Player(name,150,10, 0, 10, 5, 2,"Bronze Sword",10,1)
+    Warrior(const string name = "John Doe"):Player(name,150,10, 0, 10, 5, 2,"Bronze Sword","Sword made out of bronze ",10,1)
     {
         add_ability(0, "Strong Attack", 300);
     }
@@ -582,15 +703,7 @@ public:
 class Mage: public Player
 {
 public:
-    Mage():Player("John Doe",100,5,150,2,5,15,"Wooden Staff",8,1)
-    {
-        add_ability(0, "Fireball", 300);
-    }
-    Mage(const char name[]):Player(name, 100, 5,150,2, 5, 15,"Wooden Staff",8,1)
-    {
-        add_ability(0, "Fireball", 300);
-    }
-    Mage(String name):Player(name, 100, 5,150,2, 5, 15,"Wooden Staff",8,1)
+    Mage(const string name = "John Doe"):Player(name, 100, 5,150,2, 5, 15,"Wooden Staff","Stuff made out of wood",8,1)
     {
         add_ability(0, "Fireball", 300);
     }
@@ -601,15 +714,7 @@ public:
 class Rogue: public Player
 {
 public:
-    Rogue():Player("John Doe",125,7,50,8,10,10,"Iron Dagger",7,1)
-    {
-        add_ability(0, "The dagger cut", 250);
-    }
-    Rogue(const char name[]):Player(name, 125,7,50,8, 10, 10,"Iron Dagger",7,1)
-    {
-        add_ability(0, "The dagger cut", 250);
-    }
-    Rogue(String name):Player(name, 125,7,50,8, 10, 10,"Iron Dagger",7,1)
+    Rogue(const string name = "John Doe"):Player(name, 125,7,50,8, 10, 10,"Iron Dagger","Dagger made out of iron",7,1)
     {
         add_ability(0, "The dagger cut", 250);
     }
@@ -619,15 +724,7 @@ public:
 class Cleric: public Player
 {
 public:
-    Cleric():Player("John Doe",125,8,125,5,5,12,"Wooden Mace",9,1)
-    {
-        add_ability(0, "The Spirit of Justice", 350);
-    }
-    Cleric(const char name[]):Player(name, 125,8,125,5, 5,12,"Wooden Mace",9,1)
-    {
-        add_ability(0, "The Spirit of Justice", 350);
-    }
-    Cleric(String name):Player(name, 125,8,125,5, 5,12,"Wooden Mace",9,1)
+    Cleric(const string name = "John Doe"):Player(name, 125,8,125,5, 5,12,"Wooden Mace","Mace made out of wood",9,1)
     {
         add_ability(0, "The Spirit of Justice", 350);
     }
@@ -637,15 +734,7 @@ public:
 class Orc: public Player
 {
 public:
-    Orc():Player("John Doe",200,12,0,15,10,2,"Stone Axe",11,1)
-    {
-        add_ability(0, "Strong Attack", 400);
-    }
-    Orc(const char name[]):Player(name, 200,12,0,15,10,2,"Stone Axe",11,1)
-    {
-        add_ability(0, "Strong Attack", 400);
-    }
-    Orc(String name):Player(name, 200,12,0,15,10,2,"Stone Axe",11,1)
+    Orc(const string name = "John Doe"):Player(name, 200,12,0,15,10,2,"Stone Axe","Axe made out of stone",11,1)
     {
         add_ability(0, "Strong Attack", 400);
     }
@@ -654,12 +743,26 @@ public:
 
 class CreateMenu {
 public:
-    void display();
+    static bool display_load()
+    {
+        cout << "====== Yow want to load or create a new character? ======\n";
+        cout << "1. Yes, I want to load a character.\n";
+        cout << "2. No, I want to create a new character.\n";
+        int option;
+        cin >> option;
+        if (option == 1)
+        {
+            return true;
+        }
+        return false;
+    }
+    void display_class();
     bool return_display();
     
 };
 
-void CreateMenu::display() {
+void CreateMenu::display_class()
+{
     cout << "====== Choose Your Class ======\n";
     cout << "1. Warrior\n";
     cout << "2. Mage\n";
@@ -687,8 +790,151 @@ bool CreateMenu::return_display()
     }
 }
 
-void game_itself(Player &x)
+void save_game(Player &x,string filename)
 {
+    ofstream fout(filename,ios::trunc);
+    if (fout.fail())
+    {
+        cout << "Error: could not open file " << "\n";
+        return;
+    }
+    fout << x;
+    cout << "Character saved successfully from " << "\n";
+}
+
+void load_game(Player &x, string filename)
+{
+    ifstream fin(filename,ios::app);
+    cout << fin.getloc().name();
+    if (fin.fail())
+    {
+        cout << "Error: could not open file " << "\n";
+        return;
+    }
+    fin >> x;
+    fin.close();
+    cout << "Game loaded successfully from " << "\n";
+}
+
+
+class Shop: public Inventory
+{
+    static int Max_capacity;
+public:
+    Shop(int capacity = 30);
+    bool add_item(Item* item);
+    friend ostream & operator << (ostream &out, Shop& s);
+    ~Shop();
+};
+
+int Shop::Max_capacity = 30;
+
+Shop::Shop(int capacity)
+{
+    Max_capacity = capacity;
+}
+
+bool Shop::add_item(Item* item)
+{
+    if (this->items.size() < this->Max_capacity) {
+        this->items.push_back(item);
+        return true;
+    } else {
+        cout << "Shop inventory is full\n";
+        return false;
+    }
+}
+
+
+ostream & operator << (ostream &out, Shop& s)
+{
+    for (int i = 0; i < s.items.size(); i++)
+    {
+        cout << i+1 << ". " <<  s.items[i]->getName() << " - " << s.items[i]->getDescription() << " - " << s.items[i]->requiredClass() << "\n";
+        if (dynamic_cast<Weapon*>(s.items[i]) != nullptr)
+        {
+            cout << "Attack: " << dynamic_cast<Weapon*>(s.items[i])->get_attack_value() << "\n";
+        }
+        else if (dynamic_cast<Armor*>(s.items[i])!= nullptr) {
+            cout << "Defense: " << dynamic_cast<Armor*>(s.items[i])->get_armor_value() << "\n";
+        }
+    }
+    return out;
+}
+
+Shop::~Shop()
+{
+    for(auto item : items)
+    {
+        if(item != nullptr)
+        {
+            delete item;
+        }
+    }
+}
+
+
+class Game
+{
+    Shop s;
+    void initializate_shop();
+    void generate_monsters();
+public:
+    void game_itself(Player &x);
+};
+
+void Game::initializate_shop()
+{
+    s.add_item(new Armor("Chainmail of the Knight", "A sturdy chainmail that increases the defense of knights by 10 points",10,"Warrior"));
+    s.add_item(new Armor("Robe of the Enchanter","A mystical robe that increases the magic power of enchanters by 8 points.",8,"Mage"));
+    s.add_item(new Armor("Leather Armor of the Scout","A light armor that increases the defense of scouts by 7 points.",7,"Rogue"));
+    s.add_item(new Armor("Plate Armor of the Crusader","A heavy plate armor that increases the defense of orcs by 12 points",12,"Orc"));
+    s.add_item(new Armor("Helm of the Guardian","A heavy helm that increases the defense of spiritual guardians by 11 points",11,"Cleric"));
+    s.add_item(new Armor("Greaves of the God","Heavy greaves that increase the defense of Clerics by 12 points",12,"Cleric"));
+    s.add_item(new Weapon("Sword of the Lost King", "A powerful sword that increases the attack of warriors by 10 points.", 10, "Warrior"));
+    s.add_item(new Weapon("Shield of the Crusader", "A sturdy shield that increases the defense of paladins by 8 points.", 8, "Cleric"));
+    s.add_item(new Weapon("Staff of the Archmage", "A mystical staff that increases the magic power of mages by 12 points.", 12, "Mage"));
+    s.add_item(new Weapon("Bow of the Silent Hunter", "A silent bow that increases the attack of rangers by 9 points.", 9, "Rogue"));
+    s.add_item(new Weapon("Dagger of the Shadow Assassin", "A sharp dagger that increases the attack of rogues by 8 points.", 8, "Rogue"));
+    s.add_item(new Weapon("Spear of the Swift Lancer", "A long spear that increases the attack of dragoons by 11 points.", 11, "Warrior"));
+    s.add_item(new Weapon("Axe of the Mighty Berserker", "A heavy axe that increases the attack of berserkers by 12 points.", 12, "Warrior"));
+    s.add_item(new Weapon("Mace of the Divine Hammer", "A divine mace that increases the attack of clerics by 7 points.", 7, "Orc"));
+    s.add_item(new Weapon("Wand of the Arcane Weaver", "A magical wand that increases the magic power of wizards by 10 points.", 10, "Mage"));
+
+}
+
+int calculate_attack_damage(int character_damage,int mob_damage_protection) {
+    float damage_multiplier = 0.8;
+    if (rand() % 100 < 10)
+    {
+        damage_multiplier = 1.5;
+    }
+    else if (rand() % 100 < 5)
+    {
+        return 0;
+    }
+    int attack_damage = (int)(character_damage * damage_multiplier) - mob_damage_protection;
+    return attack_damage > 0 ? attack_damage : 0;
+}
+int calculate_attack_damage_mob(int character_protection,int mob_damage) {
+    float damage_multiplier = 0.1;
+    if (rand() % 100 < 10)
+    {
+        damage_multiplier = 0.3;
+    }
+    else if (rand() % 100 < 5)
+    {
+        return 0;
+    }
+    int attack_damage = (int)(mob_damage * damage_multiplier) - character_protection;
+    return attack_damage > 0 ? attack_damage : 0;
+}
+
+
+void Game::game_itself(Player &x)
+{
+    this->initializate_shop();
+    cout << this->s;
     Mob Giant(100,100,70,50);
     cout << "You are face to face with a giant?\n";
     cout << "How you attack?\n";
@@ -697,6 +943,7 @@ void game_itself(Player &x)
         cout << "1.Normal Damage using your weapon\n";
         cout << "2.Use one of your abilities\n";
         cout << "3.Check your stats\n";
+        cout << "4.Save your character\n";
         int option;
         cin >> option;
         if (option == 1)
@@ -705,7 +952,8 @@ void game_itself(Player &x)
             if (damage == 0)
             {
                 cout << "You missed the target." << "\n";
-            } else {
+            }
+            else {
                 cout << "You deal " << damage << " damage to the enemy." << "\n";
                 double new_hp = Giant.get_hp() - damage;
                 Giant.modify_health(new_hp);
@@ -765,6 +1013,10 @@ void game_itself(Player &x)
         {
             cout << x;
         }
+        else if(option == 4)
+        {
+            save_game(x, "/Users/rarestudur/Developer/C++/Proiect/savegame.txt");
+        }
            
     }
     if(x.get_hp() <= 0)
@@ -775,94 +1027,106 @@ void game_itself(Player &x)
     {
         cout << "You won, the giant has been defeated!!!\n";
     }
-    return;
+    return ;
 }
+
+
 
 int main(int argc, const char * argv[]) {
     CreateMenu Menu;
+    Game G;
     bool inmenu = true;
     while(inmenu)
     {
         system("clear");
-        Menu.display();
-        int option;
-        cin >> option;
-        system("clear");
-        switch(option)
+        if(Menu.display_load() == true)
         {
-            case 1:
+            Player x;
+            load_game(x, "savegame.txt");
+            G.game_itself(x);
+        }
+        else
+        {
+            Menu.display_class();
+            int option;
+            cin >> option;
+            system("clear");
+            switch(option)
             {
-                cout << "Warrior: The warrior is a master of close combat, wielding weapons such as swords, axes, and hammers with deadly precision. They are known for their high health and strength, making them excellent tanks for absorbing damage while their teammates deal damage from afar. Warriors can also specialize in specific types of combat, such as dual-wielding or shield-bashing, to suit their playstyle.\n";
-                if(Menu.return_display() == 0)
+                case 1:
                 {
-                    String name = enter_name();
-                    Warrior x(name);
-                    inmenu = false;
-                    game_itself(x);
+                    cout << "Warrior: The warrior is a master of close combat, wielding weapons such as swords, axes, and hammers with deadly precision. They are known for their high health and strength, making them excellent tanks for absorbing damage while their teammates deal damage from afar. Warriors can also specialize in specific types of combat, such as dual-wielding or shield-bashing, to suit their playstyle.\n";
+                    if(Menu.return_display() == 0)
+                    {
+                        string name = enter_name();
+                        Warrior x(name);
+                        inmenu = false;
+                        G.game_itself(x);
+                    }
                 }
-            }
-            break;
-            case 2:
-            {
-                cout << "Mage:The mage is a powerful spellcaster, using their arcane knowledge to conjure spells that can deal massive damage to enemies or heal allies. They have low health and are often vulnerable in close combat, but their ability to manipulate the elements and cast powerful spells makes them a force to be reckoned with. Mages can specialize in specific types of magic, such as fire or ice, to tailor their abilities to specific situations.\n";
-                if(Menu.return_display() == 0)
-                {
-                    String name = enter_name();
-                    Mage x(name);
-                    inmenu = false;
-                    game_itself(x);
-                }
-            }
                 break;
-            case 3:
-            {
-                cout << "The rogue is a master of stealth and subterfuge, using their agility and quick wit to maneuver through enemies undetected or deal massive damage with sneak attacks. They have low health and aren't suited for direct combat, but their ability to pick locks, disarm traps, and move silently makes them excellent for scouting and reconnaissance. Rogues can specialize in specific skills, such as pickpocketing or trap disarming, to better suit their playstyle.\n";
-                if(Menu.return_display() == 0)
+                case 2:
                 {
-                    String name = enter_name();
-                    Rogue x(name);
-                    inmenu = false;
-                    game_itself(x);
+                    cout << "Mage:The mage is a powerful spellcaster, using their arcane knowledge to conjure spells that can deal massive damage to enemies or heal allies. They have low health and are often vulnerable in close combat, but their ability to manipulate the elements and cast powerful spells makes them a force to be reckoned with. Mages can specialize in specific types of magic, such as fire or ice, to tailor their abilities to specific situations.\n";
+                    if(Menu.return_display() == 0)
+                    {
+                        string name = enter_name();
+                        Mage x(name);
+                        inmenu = false;
+                        G.game_itself(x);
+                    }
                 }
-            }
-                break;
-            case 4:
-            {
-                cout << "The cleric is a holy warrior, using their faith and divine powers to both heal allies and smite enemies. They have moderate health and combat abilities, but their ability to heal and buff allies makes them invaluable in any party. Clerics can specialize in specific domains, such as healing or combat, to better suit their role in a party.\n";
-                if(Menu.return_display() == 0)
+                    break;
+                case 3:
                 {
-                    String name = enter_name();
-                    Cleric x(name);
-                    inmenu = false;
-                    game_itself(x);
+                    cout << "The rogue is a master of stealth and subterfuge, using their agility and quick wit to maneuver through enemies undetected or deal massive damage with sneak attacks. They have low health and aren't suited for direct combat, but their ability to pick locks, disarm traps, and move silently makes them excellent for scouting and reconnaissance. Rogues can specialize in specific skills, such as pickpocketing or trap disarming, to better suit their playstyle.\n";
+                    if(Menu.return_display() == 0)
+                    {
+                        string name = enter_name();
+                        Rogue x(name);
+                        inmenu = false;
+                        G.game_itself(x);
+                    }
                 }
-            }
-                break;
-            case 5:
-            {
-                cout << "The orc is a fierce warrior, using their brute strength and primal instincts to overpower enemies. They have high health and strength, making them excellent tanks, but their lack of finesse can sometimes make them vulnerable to more agile enemies. Orcs can specialize in specific combat styles, such as berserker or shamanistic, to suit their playstyle and give them an edge in battle.\n";
-                if(Menu.return_display() == 0)
+                    break;
+                case 4:
                 {
-                    String name = enter_name();
-                    Orc x(name);
-                    inmenu = false;
-                    game_itself(x);
+                    cout << "The cleric is a holy warrior, using their faith and divine powers to both heal allies and smite enemies. They have moderate health and combat abilities, but their ability to heal and buff allies makes them invaluable in any party. Clerics can specialize in specific domains, such as healing or combat, to better suit their role in a party.\n";
+                    if(Menu.return_display() == 0)
+                    {
+                        string name = enter_name();
+                        Cleric x(name);
+                        inmenu = false;
+                        G.game_itself(x);
+                    }
                 }
-            }
-            case 6:
-            {
-                if(Menu.return_display() == false)
+                    break;
+                case 5:
                 {
-                    Player x;
-                    cin >> x;
-                    inmenu = false;
-                    game_itself(x);
+                    cout << "The orc is a fierce warrior, using their brute strength and primal instincts to overpower enemies. They have high health and strength, making them excellent tanks, but their lack of finesse can sometimes make them vulnerable to more agile enemies. Orcs can specialize in specific combat styles, such as berserker or shamanistic, to suit their playstyle and give them an edge in battle.\n";
+                    if(Menu.return_display() == 0)
+                    {
+                        string name = enter_name();
+                        Orc x(name);
+                        inmenu = false;
+                        G.game_itself(x);
+                    }
                 }
+                case 6:
+                {
+                    if(Menu.return_display() == false)
+                    {
+                        Player x;
+                        cin >> x;
+                        inmenu = false;
+                        G.game_itself(x);
+                    }
+                }
+                    break;
+                default:
+                    inmenu = false;
+                    break;
             }
-                break;
-            default:
-                inmenu = false;
-                break;
         }
     }
     return 0;
