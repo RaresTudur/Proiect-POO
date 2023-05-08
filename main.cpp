@@ -3,6 +3,9 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <chrono>
+#include <thread>
+#include <iomanip>
 using namespace std;
 
 
@@ -76,11 +79,14 @@ string enter_name()
 
 class Item {
 public:
-    virtual ~Item() = default;
+    virtual ~Item() = 0;
     virtual string getName() const = 0;
     virtual string getDescription() const = 0;
     virtual string requiredClass() const = 0;
 };
+
+Item::~Item()
+{}
 
 class Inventory {
     
@@ -233,6 +239,7 @@ public:
     friend ofstream & operator << (ofstream &output, const Armor &x);
     friend istream & operator >> (istream &in, Armor &x);
     friend ifstream & operator >> (ifstream &input, Armor &x);
+    virtual ~Armor() override = default;
 };
 
 string Armor::getDescription() const
@@ -308,7 +315,7 @@ public:
     friend ofstream & operator << (ofstream &output, const Weapon &x);
     friend istream & operator >> (istream &in, Weapon &x);
     friend ifstream & operator >> (ifstream &input, Weapon &x);
-    ~Weapon() = default;
+    ~Weapon() override = default;
 };
 
 string Weapon::getDescription() const
@@ -903,6 +910,23 @@ void Game::initializate_shop()
 
 }
 
+void loading_bar()
+{
+    int width = 50;
+    cout << setw(width/2) << right << "Loading..." << endl;
+    cout << "[" << setw(width) << left << "" << "]" << endl;
+    cout << "[" << flush;
+
+    for (int i = 0; i < width; i++)
+    {
+        cout << "#" << flush;
+        this_thread::sleep_for(chrono::milliseconds(50));
+    }
+
+    cout << "]" << endl;
+    cout << setw(width/2) << right << "Done!" << endl;
+}
+
 int calculate_attack_damage(int character_damage,int mob_damage_protection) {
     float damage_multiplier = 0.8;
     if (rand() % 100 < 10)
@@ -933,6 +957,7 @@ int calculate_attack_damage_mob(int character_protection,int mob_damage) {
 
 void Game::game_itself(Player &x)
 {
+    loading_bar();
     this->initializate_shop();
     cout << this->s;
     Mob Giant(100,100,70,50);
