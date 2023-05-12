@@ -3,16 +3,45 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <queue>
+#include <unordered_set>
 #include <chrono>
 #include <thread>
 #include <iomanip>
+#include <exception>
 using namespace std;
 
 
+class InsufficientFundsException : public exception // Error for not enough gold for player to buy that item
+{
+public:
+    virtual const char* what() const throw()
+    {
+        return "You don't have enough money to buy this item!";
+    }
+};
 
-// Attack functions
+class ClassMismatchException : public exception // Player can't buy an item that is not made for his class
+{
+public:
+    virtual const char* what() const throw()
+    {
+        return "This item doesn't match your class!";
+    }
+};
 
-int calculate_attack_ability(int damage_ability,int protection)
+
+class HealthMismatchException : public exception // Used for going to shop because the player can go to shop only if he isn't already fighting a mob
+{
+public:
+    const char* what() const noexcept override
+    {
+        return "Health mismatch - unable to enter shop";
+    }
+};
+
+
+int calculate_attack_ability(int damage_ability,int protection) // formula used for generating the attack value for an ability
 {
     float damage_multiplier = 0.2;
     if (rand() % 100 < 10)
@@ -27,47 +56,274 @@ int calculate_attack_ability(int damage_ability,int protection)
     return dmg_ability > 0 ? dmg_ability : 0;
 }
 
-class Mob
+class Mob // pure virtual class
+{
+public:
+    virtual int get_hp()  const = 0;
+    virtual int get_dmg()  const = 0;
+    virtual int get_protection()  const = 0;
+    virtual int get_magic_protection()  const = 0;
+    virtual void modify_health(const double &value) = 0;
+    virtual ~Mob() = 0;
+};
+
+Mob::~Mob()
+{
+}
+
+
+class Zombie: public Mob
 {
     double health;
     int protection;
     int magic_protection;
     int damage;
 public:
-    Mob():health(0),damage(0),protection(0),magic_protection(0){}
-    Mob(int hp,int dmg): health(hp),damage(dmg),protection(0),magic_protection(0){}
-    Mob(int hp,int dmg,int prot,int magic_prot): health(hp),damage(dmg),protection(prot),magic_protection(magic_prot){}
-    int get_hp() const;
-    int get_dmg() const;
-    int get_protection() const;
-    int get_magic_protection() const;
-    void modify_health(const double &value);
+    Zombie(int moblevel = 1);
+    int get_hp() const override;
+    int get_dmg() const override;
+    int get_protection() const override;
+    int get_magic_protection() const override;
+    void modify_health(const double &value) override;
+    ~Zombie() override = default;
 };
 
-void Mob::modify_health(const double &value)
+
+Zombie::Zombie(int moblevel)
+{
+    this->health = 50 + (moblevel * 10);
+    this->protection = 5 + (moblevel * 2);
+    this->magic_protection = 0;
+    this->damage = 10 + (moblevel * 3);
+}
+
+void Zombie::modify_health(const double &value)
 {
     this->health = value;
 }
 
-int Mob::get_hp() const
+int Zombie::get_hp() const
 {
     return this->health;
 }
 
-int Mob::get_dmg() const
+int Zombie::get_dmg() const
 {
     return this->damage;
 }
 
-int Mob::get_protection() const
+int Zombie::get_protection() const
 {
     return this->protection;
 }
 
-int Mob::get_magic_protection() const
+int Zombie::get_magic_protection() const
 {
     return this->magic_protection;
 }
+
+
+class Skeleton: public Mob
+{
+    double health;
+    int protection;
+    int magic_protection;
+    int damage;
+public:
+    int get_hp() const override;
+    int get_dmg() const override;
+    int get_protection() const override;
+    int get_magic_protection() const override;
+    void modify_health(const double &value) override;
+    Skeleton(int moblevel = 1);
+    ~Skeleton() override = default;
+};
+
+
+Skeleton::Skeleton(int moblevel)
+{
+    this->health = 40 + (moblevel * 8);
+    this->protection = 8 + (moblevel * 3);
+    this->magic_protection = 0;
+    this->damage = 12 + (moblevel * 3);
+}
+
+
+void Skeleton::modify_health(const double &value)
+{
+    this->health = value;
+}
+
+int Skeleton::get_hp() const
+{
+    return this->health;
+}
+
+int Skeleton::get_dmg() const
+{
+    return this->damage;
+}
+
+int Skeleton::get_protection() const
+{
+    return this->protection;
+}
+
+int Skeleton::get_magic_protection() const
+{
+    return this->magic_protection;
+}
+
+class Wraith: public virtual Mob
+{
+    double health;
+    int protection;
+    int magic_protection;
+    int damage;
+public:
+    Wraith(int moblevel = 1);
+    int get_hp() const override;
+    int get_dmg() const override;
+    int get_protection() const override;
+    int get_magic_protection() const override;
+    void modify_health(const double &value) override;
+    ~Wraith() override = default;
+};
+
+
+Wraith::Wraith(int moblevel)
+{
+    this->health = 60 + (moblevel * 12);
+    this->protection = 2 + (moblevel * 1);
+    this->magic_protection = 0;
+    this->damage = 20 + (moblevel * 1);
+}
+
+void Wraith::modify_health(const double &value)
+{
+    this->health = value;
+}
+
+int Wraith::get_hp() const
+{
+    return this->health;
+}
+
+int Wraith::get_dmg() const
+{
+    return this->damage;
+}
+
+int Wraith::get_protection() const
+{
+    return this->protection;
+}
+
+int Wraith::get_magic_protection() const
+{
+    return this->magic_protection;
+}
+
+class Demon: public virtual Mob
+{
+    double health;
+    int protection;
+    int magic_protection;
+    int damage;
+public:
+    Demon(int moblevel = 1);
+    int get_hp() const override;
+    int get_dmg() const override;
+    int get_protection() const override;
+    int get_magic_protection() const override;
+    void modify_health(const double &value) override;
+    ~Demon() override = default;
+};
+
+Demon::Demon(int moblevel)
+{
+    this->health = 80 + (moblevel * 15);
+    this->protection = 10 + (moblevel * 3);
+    this->magic_protection = 15 + (moblevel * 3);
+    this->damage = 25 + (moblevel * 3);
+}
+
+void Demon::modify_health(const double &value)
+{
+    this->health = value;
+}
+
+int Demon::get_hp() const
+{
+    return this->health;
+}
+
+int Demon::get_dmg() const
+{
+    return this->damage;
+}
+
+int Demon::get_protection() const
+{
+    return this->protection;
+}
+
+int Demon::get_magic_protection() const
+{
+    return this->magic_protection;
+}
+
+
+class Boss: public Demon, public Wraith
+{
+    double health;
+    int protection;
+    int magic_protection;
+    int damage;
+public:
+    Boss();
+    int get_hp() const override;
+    int get_dmg() const override;
+    int get_protection() const override;
+    int get_magic_protection() const override;
+    void modify_health(const double &value) override;
+    ~Boss() override = default;
+};
+
+Boss::Boss()
+{
+    this->health = 1500;
+    this->protection = 200;
+    this->magic_protection = 40;
+    this->damage = 120;
+}
+
+void Boss::modify_health(const double &value)
+{
+    this->health = value;
+}
+
+int Boss::get_hp() const
+{
+    return this->health;
+}
+
+int Boss::get_dmg() const
+{
+    return this->damage;
+}
+
+int Boss::get_protection() const
+{
+    return this->protection;
+}
+
+int Boss::get_magic_protection() const
+{
+    return this->magic_protection;
+}
+
+
 
 string enter_name()
 {
@@ -82,11 +338,17 @@ public:
     virtual ~Item() = 0;
     virtual string getName() const = 0;
     virtual string getDescription() const = 0;
+    virtual int requiredprice() const = 0;
     virtual string requiredClass() const = 0;
 };
 
 Item::~Item()
 {}
+
+ostream& operator<<(ostream& os, const Item& item) {
+    os << item.getName();
+    return os;
+}
 
 class Inventory {
     
@@ -97,17 +359,18 @@ protected:
 public:
     int get_size() const;
     Item* getItem(int poz);
-    vector <Item*> getitems();
+    vector <Item*> getitems() const;
     bool add_item(Item* item);
     bool remove_item(Item* item);
 };
 
 int Inventory::MAX_CAPACITY = 10;
 
-vector <Item*> Inventory::getitems()
+vector <Item*> Inventory::getitems() const
 {
     return this->items;
 }
+
 
 Item* Inventory::getItem(int poz)
 {
@@ -229,18 +492,40 @@ class Armor: public Item
     string description;
     int armor_value;
     string requiredclass;
+    int price;
 public:
-    Armor(string name = "", string description = "",int value = 0, string rC = ""): armor_name(name),description(description),armor_value(value),requiredclass(rC){}
+    Armor(string name = "", string description = "",int value = 0, string rC = "", int price = 0): armor_name(name),description(description),armor_value(value),requiredclass(rC),price(price){}
+    Armor& operator = (const Armor* a);
+    operator Armor*();
     string getName() const override;
     int get_armor_value() const;
     string getDescription() const override;
     string requiredClass() const override;
+    int requiredprice() const override;
     friend ostream & operator << (ostream &out, const Armor &x);
     friend ofstream & operator << (ofstream &output, const Armor &x);
     friend istream & operator >> (istream &in, Armor &x);
     friend ifstream & operator >> (ifstream &input, Armor &x);
     virtual ~Armor() override = default;
 };
+
+Armor::operator Armor *()
+{
+    return this;
+}
+
+Armor& Armor::operator = (const Armor* a)
+{
+    if(a != nullptr && this != a)
+    {
+        this->armor_name = a->getName();
+        this->description = a->getDescription();
+        this->armor_value = a->armor_value;
+        this->requiredclass = a->requiredClass();
+        this->price = a->requiredprice();
+    }
+    return *this;
+}
 
 string Armor::getDescription() const
 {
@@ -262,15 +547,21 @@ int Armor::get_armor_value() const
     return this->armor_value;
 }
 
+int Armor::requiredprice() const
+{
+    return this->price;
+}
+
+
 ostream & operator << (ostream &out, const Armor &x)
 {
     out << "The name and the armor value of your armor is\n";
-    out << x.armor_name << " " << x.armor_value << "\n";
+    out << x.armor_name << " " << x.armor_value << " " << x.requiredclass << " " << x.price << "\n";
     return out;
 }
 ofstream & operator << (ofstream &output, const Armor &x)
 {
-    output << x.armor_name.c_str() << " " << x.armor_value << "\n";
+    output << x.armor_name.c_str() << " " << x.armor_value << " " << x.requiredclass << " " << x.price << "\n";
     return output;
 }
 
@@ -302,21 +593,45 @@ class Weapon :public Item
     string description;
     int attack;
     string reqClass;
+    int price;
 public:
-    Weapon(string name = "", string description = "", int atk = 0, string rC = ""): name_weapon(name),description(description),attack(atk),reqClass(rC){}
-    string getName() const override
-    {
-            return this->name_weapon;
-    }
+    Weapon(string name = "", string description = "", int atk = 0, string rC = "", int price = 0): name_weapon(name),description(description),attack(atk),reqClass(rC),price(price){}
+    Weapon& operator =(const Weapon *w);
+    operator Weapon*();
+    string getName() const override;
     int get_attack_value() const;
     string getDescription() const override;
     string requiredClass() const override;
+    int requiredprice() const override;
     friend ostream & operator << (ostream &out, const Weapon &x);
     friend ofstream & operator << (ofstream &output, const Weapon &x);
     friend istream & operator >> (istream &in, Weapon &x);
     friend ifstream & operator >> (ifstream &input, Weapon &x);
     ~Weapon() override = default;
 };
+
+Weapon::operator Weapon *()
+{
+    return this;
+}
+
+Weapon& Weapon::operator = (const Weapon* w)
+{
+    if(w != nullptr && this != w)
+    {
+        this->name_weapon = w->getName();
+        this->description = w->getDescription();
+        this->attack = w->get_attack_value();
+        this->reqClass = w->requiredClass();
+        this->price = w->requiredprice();
+    }
+    return *this;
+}
+
+string Weapon::getName() const
+{
+        return this->name_weapon;
+}
 
 string Weapon::getDescription() const
 {
@@ -326,6 +641,11 @@ string Weapon::getDescription() const
 string Weapon::requiredClass() const
 {
     return this->reqClass;
+}
+
+int Weapon::requiredprice() const
+{
+    return this->price;
 }
 
 ostream & operator << (ostream &out, const Weapon &x)
@@ -372,26 +692,25 @@ int Weapon::get_attack_value() const
 
 class Player
 {
-    int health,defense,magic,strength,speed,intelligence;
+    int health,defense,magic,strength,speed,intelligence,gold;
     string name;
-    Weapon weapon;
+    Weapon equiped_weapon;
+    Armor equiped_armor;
     Inventory inventory;
     int num_abilities;
     Ability *abilities;
 public:
-    Player():name(""),health(0),defense(0),magic(0),strength(0),speed(0),intelligence(0),weapon(),num_abilities(1)
+    Player():name(""),health(0),defense(0),magic(0),strength(0),speed(0),intelligence(0),gold(0),equiped_weapon(),num_abilities(1)
     {
         this->abilities = new Ability[num_abilities];
         add_ability(0, "Basic",0);
     }
-    Player(const string nume,const int& hp,const int & df,const int& Mp,const int& St,const int& Sp,const int& It, const char* name_weapon, string description,int atk,int num_ab):name(nume),health(hp),magic(Mp),strength(St),speed(Sp),intelligence(It),weapon(name_weapon,description,atk),num_abilities(num_ab)
+    Player(const string nume,const int& hp,const int & df,const int& Mp,const int& St,const int& Sp,const int& It, const int& gold,const char* name_weapon, string description,int atk,int num_ab):name(nume),health(hp),magic(Mp),strength(St),speed(Sp),intelligence(It),gold(gold),equiped_weapon(name_weapon,description,atk),num_abilities(num_ab),equiped_armor()
     {
-        if (num_abilities <= 0)
+        if (num_abilities != 0)
         {
-            cout << "Invalid number of abilities.\n";
-            return;
+            this->abilities = new Ability[num_abilities];
         }
-        this->abilities = new Ability[num_abilities];
     }
     string get_mume() const;
     int get_hp() const;
@@ -401,7 +720,8 @@ public:
     int get_speed() const;
     int get_intelligence() const;
     int get_number_of_abilities() const;
-    Inventory getInventory() const;
+    int get_gold() const;
+    Inventory& getInventory();
     Ability get_ability(int index) const;
     void set_name(const char name[]);
     void set_magic(const int& magic = 0);
@@ -412,6 +732,8 @@ public:
     void set_speed(const int& speed = 0);
     void set_num_abilities(const int num);
     void add_ability(const int index,const char* name,const int damage);
+    virtual string get_class() const;
+    void equip_item(Item *item);
     friend ostream & operator << (ostream &out, const Player &x);
     friend ofstream & operator << (ofstream &output, const Player &x);
     friend istream & operator >> (istream &in,  Player &x);
@@ -452,7 +774,7 @@ ofstream & operator << (ofstream &output, const Player &x)
     output << x.magic << "\n";
     output << x.speed << "\n";
     output << x.intelligence << "\n";
-    output << x.weapon;
+    output << x.equiped_weapon;
     output << x.num_abilities << "\n";
     for(int i = 0; i < x.num_abilities; i++)
     {
@@ -471,7 +793,8 @@ ostream & operator << (ostream &out, const Player &x)
     out << "Magic Damage: " << x.magic << "\n";
     out << "Speed: " << x.speed << "\n";
     out << "Intelligence: " << x.intelligence << "\n";
-    out << x.weapon;
+    out << "Gold: " << x.gold << "\n";
+    out << x.equiped_weapon;
     out << "Number of abilities: " << x.num_abilities << "\n";
     out << "The name and damage of each ability : \n";
     for(int i = 0; i < x.num_abilities; i++)
@@ -479,16 +802,21 @@ ostream & operator << (ostream &out, const Player &x)
         cout << x.abilities[i];
     }
     out << "Items in inventory:\n";
-    for(auto item: x.getInventory().getitems())
+    for(auto item: x.inventory.getitems())
     {
-        out << item << "\n";
+        if(item != nullptr)
+        {
+            out << *(item) << "\n";
+        }
     }
     return out;
 }
 istream & operator >> (istream &cin,  Player &x)
+
 {
     cout << "Enter this values for your character\n";
     cout << "Enter the name of your character\n";
+    cin >> ws;
     getline (cin, x.name);
     cout << "Enter the health of your character\n";
     while (!(cin >> x.health) || x.health < 1 || x.health > INT_MAX)
@@ -537,8 +865,16 @@ istream & operator >> (istream &cin,  Player &x)
         cin.ignore(INT_MAX, '\n');
         cout << "Enter the intelligence of your character\n";
     }
+    cout << "Enter the gold amount of your character\n";
+    while (!(cin >> x.gold) || x.gold < 1 || x.gold > INT_MAX)
+    {
+        cout << "Invalid input. The gold amount must be a positive integer between 1 and 1000." << "\n";
+        cin.clear();
+        cin.ignore(INT_MAX, '\n');
+        cout << "Enter the gold amount of your character\n";
+    }
     cout << "Enter the weapon of your character\n";
-    cin >> x.weapon;
+    cin >> x.equiped_weapon;
     cout << "Enter the number of abilities your character has\n";
     while (!(cin >> x.num_abilities) || x.num_abilities < 1 || x.num_abilities > INT_MAX)
     {
@@ -570,7 +906,7 @@ ifstream& operator>>(ifstream& input, Player &x)
     input >> x.speed;
     input >> x.strength;
     input >> x.intelligence;
-    input >> x.weapon;
+    input >> x.equiped_weapon;
     input >> x.num_abilities;
     if(x.abilities != nullptr)
     {
@@ -598,6 +934,11 @@ void Player::set_hp(const int &hp)
 void Player::set_magic(const int &magic)
 {
     this->magic = magic;
+}
+
+void Player::set_strength(const int &strength)
+{
+    this->strength = strength;
 }
 
 void Player::set_speed(const int &speed)
@@ -677,10 +1018,45 @@ int Player::get_number_of_abilities() const
     return this->num_abilities;
 }
 
-Inventory Player::getInventory() const
+Inventory& Player::getInventory()
 {
     return this->inventory;
 }
+
+void Player::equip_item(Item* item) {
+    Armor* armor = dynamic_cast<Armor*>(item);
+    if (armor != nullptr)
+    {
+        if(equiped_armor.getName() != "")
+        {
+            this->inventory.add_item(equiped_armor);
+        }
+        this->equiped_armor = armor;
+        cout << "Equipped armor: " << armor->getName() << "\n";
+        int new_def =this->get_defense() + equiped_armor.get_armor_value();
+        this->set_defense(new_def);
+        this->inventory.remove_item(item);
+        return;
+    }
+
+    Weapon* weapon = dynamic_cast<Weapon*>(item);
+    if (weapon != nullptr)
+    {
+        if(equiped_weapon.getName() != "")
+        {
+            this->inventory.add_item(equiped_weapon);
+        }
+        this->equiped_weapon = weapon;
+        cout << "Equipped weapon: " << weapon->getName() << "\n";
+        int new_attack = this->get_strength() + equiped_weapon.get_attack_value();
+        this->set_strength(new_attack);
+        this->inventory.remove_item(item);
+        return;
+    }
+
+    cout << "Item cannot be equipped." << "\n";
+}
+
 
 Ability Player::get_ability(int index) const
 {
@@ -696,57 +1072,97 @@ Ability Player::get_ability(int index) const
     return this->abilities[index];
 }
 
+int Player::get_gold() const
+{
+    return this->gold;
+}
+
+string Player::get_class() const
+{
+    return "Player";
+}
+
 
 class Warrior: public Player
 {
 public:
-    Warrior(const string name = "John Doe"):Player(name,150,10, 0, 10, 5, 2,"Bronze Sword","Sword made out of bronze ",10,1)
+    Warrior(const string name = "John Doe"):Player(name,150,10, 0, 10, 5, 2,260,"Bronze Sword","Sword made out of bronze ",10,1)
     {
         add_ability(0, "Strong Attack", 300);
     }
+    string get_class() const override;
     ~Warrior() = default;
 };
+
+string Warrior::get_class() const
+{
+    return "Warrior";
+}
 
 class Mage: public Player
 {
 public:
-    Mage(const string name = "John Doe"):Player(name, 100, 5,150,2, 5, 15,"Wooden Staff","Stuff made out of wood",8,1)
+    Mage(const string name = "John Doe"):Player(name, 100, 5,150,2, 5, 15,330,"Wooden Staff","Stuff made out of wood",8,1)
     {
         add_ability(0, "Fireball", 300);
     }
     ~Mage() = default;
+    string get_class() const override;
 };
+
+string Mage::get_class() const
+{
+    return "Mage";
+}
 
 
 class Rogue: public Player
 {
 public:
-    Rogue(const string name = "John Doe"):Player(name, 125,7,50,8, 10, 10,"Iron Dagger","Dagger made out of iron",7,1)
+    Rogue(const string name = "John Doe"):Player(name, 125,7,50,8, 10, 10,240,"Iron Dagger","Dagger made out of iron",7,1)
     {
         add_ability(0, "The dagger cut", 250);
     }
+    string get_class() const override;
     ~Rogue() = default;
 };
+
+string Rogue::get_class() const
+{
+    return "Rogue";
+}
 
 class Cleric: public Player
 {
 public:
-    Cleric(const string name = "John Doe"):Player(name, 125,8,125,5, 5,12,"Wooden Mace","Mace made out of wood",9,1)
+    Cleric(const string name = "John Doe"):Player(name, 125,8,125,5, 5,12,320,"Wooden Mace","Mace made out of wood",9,1)
     {
         add_ability(0, "The Spirit of Justice", 350);
     }
+    string get_class() const override;
     ~Cleric() = default;
 };
+
+string Cleric::get_class() const
+{
+    return "Cleric";
+}
 
 class Orc: public Player
 {
 public:
-    Orc(const string name = "John Doe"):Player(name, 200,12,0,15,10,2,"Stone Axe","Axe made out of stone",11,1)
+    Orc(const string name = "John Doe"):Player(name, 200,12,0,15,10,2,320,"Stone Axe","Axe made out of stone",11,1)
     {
         add_ability(0, "Strong Attack", 400);
     }
+    string get_class() const override;
     ~Orc() = default;
 };
+
+string Orc::get_class() const
+{
+    return "Orc";
+}
 
 class CreateMenu {
 public:
@@ -830,6 +1246,8 @@ class Shop: public Inventory
 public:
     Shop(int capacity = 30);
     bool add_item(Item* item);
+    void remove_item(const string& item_name);
+    void buy(Player &player, Item* item);
     friend ostream & operator << (ostream &out, Shop& s);
     ~Shop();
 };
@@ -840,6 +1258,7 @@ Shop::Shop(int capacity)
 {
     Max_capacity = capacity;
 }
+
 
 bool Shop::add_item(Item* item)
 {
@@ -852,12 +1271,60 @@ bool Shop::add_item(Item* item)
     }
 }
 
+void Shop::remove_item(const string& item_name)
+{
+    auto it = std::find_if(items.begin(), items.end(), [&item_name](const Item* item)
+    {
+        return item->getName() == item_name;
+    });
+
+    if (it != items.end())
+    {
+        items.erase(it);
+    }
+}
+
+void Shop::buy(Player& player, Item* item)
+{
+    try
+    {
+        if (player.get_gold() < item->requiredprice())
+        {
+            throw InsufficientFundsException();
+        }
+
+        if (player.get_class() != item->requiredClass())
+        {
+            throw ClassMismatchException();
+        }
+        player.getInventory().add_item(item);
+        cout << "Item added to player's inventory: " << item->getName() << "\n";
+        this->remove_item(item->getName());
+        cout << "You want to equip the item you bought?\n";
+        cout << "1.Yes !\n";
+        cout << "2.No !\n";
+        int option_equip;
+        cin >> option_equip;
+        if(option_equip == 1)
+        {
+            player.equip_item(item);
+        }
+    }catch(const InsufficientFundsException &e)
+    {
+        cerr << e.what() << "\n";
+    }
+    catch(const ClassMismatchException &e)
+    {
+        cerr << e.what() << "\n";
+    }
+}
+
 
 ostream & operator << (ostream &out, Shop& s)
 {
     for (int i = 0; i < s.items.size(); i++)
     {
-        cout << i+1 << ". " <<  s.items[i]->getName() << " - " << s.items[i]->getDescription() << " - " << s.items[i]->requiredClass() << "\n";
+        cout << i+1 << ". " <<  s.items[i]->getName() << " - " << s.items[i]->getDescription() << " - " << s.items[i]->requiredClass() << " - " << s.items[i]->requiredprice() << "\n";
         if (dynamic_cast<Weapon*>(s.items[i]) != nullptr)
         {
             cout << "Attack: " << dynamic_cast<Weapon*>(s.items[i])->get_attack_value() << "\n";
@@ -881,33 +1348,143 @@ Shop::~Shop()
 }
 
 
+class Dungeon {
+private:
+    vector<unordered_set<Mob*>> levels;
+    int currentLevel = 0;
+    int maxLevel;
+public:
+    Dungeon(const int &numLevels = 3)
+    {
+        // Create levels
+        this->maxLevel = numLevels;
+        this->levels.resize(numLevels);
+        for(int i = 0; i < numLevels-1; i++)
+        {
+            addMonstersToLevel(i, 10, 1);
+        }
+        Mob *boss = new Boss;
+        this->levels[numLevels-1].insert(boss);
+    }
+
+    // Add monsters to a specific level
+    void addMonstersToLevel(int levelNum, int numMonsters, int monsterLevel)
+    {
+        for (int i = 0; i < numMonsters; i++)
+        {
+            int random_num = rand() % 4 + 1;
+            switch (random_num) {
+                case 1:
+                {
+                    Mob* newMob = new Zombie(monsterLevel + 1);
+                    this->levels[levelNum].insert(newMob);
+                }
+                    break;
+                case 2:
+                {
+                    Mob* newMob = new Skeleton(monsterLevel + 1);
+                    this->levels[levelNum].insert(newMob);
+                }
+                    break;
+                case 3:
+                {
+                    Mob* newMob = new Wraith(monsterLevel + 1);
+                    this->levels[levelNum].insert(newMob);
+                }
+                    break;
+                case 4:
+                {
+                    Mob* newMob = new Demon(monsterLevel + 1);
+                    this->levels[levelNum].insert(newMob);
+                }
+                    break;
+                default:
+                    break;
+            }
+            
+        }
+    }
+    void nextLevel();
+    int get_maxlevel() const;
+    bool endDungeon() const;
+    int get_currentLevel() const;
+    vector<unordered_set<Mob*>> getLevels() const;
+    ~Dungeon();
+};
+
+int Dungeon::get_currentLevel() const
+{
+    return this->currentLevel + 1;
+}
+
+vector<unordered_set<Mob*>> Dungeon::getLevels() const
+{
+    return this->levels;
+}
+
+bool Dungeon::endDungeon() const
+{
+    return ((this->currentLevel+1) == this->maxLevel-1);
+}
+
+int Dungeon::get_maxlevel() const
+{
+    return this->maxLevel;
+}
+
+void Dungeon::nextLevel()
+{
+    this->currentLevel++;
+}
+
+Dungeon::~Dungeon() {
+    for (auto &level : levels)
+    { // loop over each level
+        for(auto &mob : level)
+        {
+            if(mob != nullptr)
+            {
+                delete mob;
+            }
+        }
+    }
+}
+
+
+
 class Game
 {
     Shop s;
+    Dungeon d;
     void initializate_shop();
-    void generate_monsters();
 public:
     void game_itself(Player &x);
 };
 
 void Game::initializate_shop()
 {
-    s.add_item(new Armor("Chainmail of the Knight", "A sturdy chainmail that increases the defense of knights by 10 points",10,"Warrior"));
-    s.add_item(new Armor("Robe of the Enchanter","A mystical robe that increases the magic power of enchanters by 8 points.",8,"Mage"));
-    s.add_item(new Armor("Leather Armor of the Scout","A light armor that increases the defense of scouts by 7 points.",7,"Rogue"));
-    s.add_item(new Armor("Plate Armor of the Crusader","A heavy plate armor that increases the defense of orcs by 12 points",12,"Orc"));
-    s.add_item(new Armor("Helm of the Guardian","A heavy helm that increases the defense of spiritual guardians by 11 points",11,"Cleric"));
-    s.add_item(new Armor("Greaves of the God","Heavy greaves that increase the defense of Clerics by 12 points",12,"Cleric"));
-    s.add_item(new Weapon("Sword of the Lost King", "A powerful sword that increases the attack of warriors by 10 points.", 10, "Warrior"));
-    s.add_item(new Weapon("Shield of the Crusader", "A sturdy shield that increases the defense of paladins by 8 points.", 8, "Cleric"));
-    s.add_item(new Weapon("Staff of the Archmage", "A mystical staff that increases the magic power of mages by 12 points.", 12, "Mage"));
-    s.add_item(new Weapon("Bow of the Silent Hunter", "A silent bow that increases the attack of rangers by 9 points.", 9, "Rogue"));
-    s.add_item(new Weapon("Dagger of the Shadow Assassin", "A sharp dagger that increases the attack of rogues by 8 points.", 8, "Rogue"));
-    s.add_item(new Weapon("Spear of the Swift Lancer", "A long spear that increases the attack of dragoons by 11 points.", 11, "Warrior"));
-    s.add_item(new Weapon("Axe of the Mighty Berserker", "A heavy axe that increases the attack of berserkers by 12 points.", 12, "Warrior"));
-    s.add_item(new Weapon("Mace of the Divine Hammer", "A divine mace that increases the attack of clerics by 7 points.", 7, "Orc"));
-    s.add_item(new Weapon("Wand of the Arcane Weaver", "A magical wand that increases the magic power of wizards by 10 points.", 10, "Mage"));
-
+    s.add_item(new Armor("Chainmail of the Knight", "A sturdy chainmail that increases the defense of knights by 10 points",10,"Warrior", 160));
+    s.add_item(new Armor("Robe of the Enchanter","A mystical robe that increases the magic power of enchanters by 8 points.",8,"Mage", 120));
+    s.add_item(new Armor("Leather Armor of the Scout","A light armor that increases the defense of scouts by 7 points.",7,"Rogue", 110));
+    s.add_item(new Armor("Plate Armor of the Crusader","A heavy plate armor that increases the defense of orcs by 12 points",12,"Orc", 180));
+    s.add_item(new Armor("Helm of the Guardian","A heavy helm that increases the defense of spiritual guardians by 11 points",11,"Cleric", 170));
+    s.add_item(new Armor("Greaves of the God","Heavy greaves that increase the defense of Clerics by 12 points",12,"Cleric", 180));
+    s.add_item(new Weapon("Sword of the Lost King", "A powerful sword that increases the attack of warriors by 10 points.", 10, "Warrior", 150));
+    s.add_item(new Armor("Shield of the Crusader", "A sturdy shield that increases the defense of w by 8 points.", 8, "Cleric", 120));
+    s.add_item(new Weapon("Staff of the Archmage", "A mystical staff that increases the magic power of mages by 12 points.", 12, "Mage", 180));
+    s.add_item(new Weapon("Bow of the Silent Hunter", "A silent bow that increases the attack of rangers by 9 points.", 9, "Rogue", 140));
+    s.add_item(new Weapon("Dagger of the Shadow Assassin", "A sharp dagger that increases the attack of rogues by 8 points.", 8, "Rogue", 120));
+    s.add_item(new Weapon("Spear of the Swift Lancer", "A long spear that increases the attack of dragoons by 11 points.", 11, "Warrior", 170));
+    s.add_item(new Weapon("Axe of the Mighty Berserker", "A heavy axe that increases the attack of berserkers by 12 points.", 12, "Warrior", 180));
+    s.add_item(new Weapon("Mace of the Divine Hammer", "A divine mace that increases the attack of clerics by 7 points.", 7, "Orc",110));
+    s.add_item(new Weapon("Wand of the Arcane Weaver", "A magical wand that increases the magic power of wizards by 10 points.", 10, "Mage", 150));
+    s.add_item(new Weapon("Gauntlets of the Gladiator", "Sturdy gauntlets that increase the attack of gladiators by 7 points ",7,"Warrior",110));
+    s.add_item(new Weapon("Ring of the Necromancer","A dark ring that increases the magic power of necromancers by 10 points.",10,"Mage",150));
+    s.add_item(new Weapon("Belt of the Barbarian","A rugged belt that increases the attack of barbarians by 9 points.",9,"Warrior",140));
+    s.add_item(new Weapon("Necklace of the Shaman", "A mystical necklace that increases the magic power of shamans by 7 points.",7,"Cleric",110));
+    s.add_item(new Weapon("Gloves of the Marksman", "Light gloves that increase the attack of marksmen by 8 points.",8,"Rogue",120));
+    s.add_item(new Weapon("Bracers of the Monk", "Sturdy bracers that increase the attack of monks by 7 points.", 7, "Cleric", 110));
+    s.add_item(new Weapon("Pendant of the Archon", "A mystical pendant that increases the magic power of archons by 11 points.",11,"Mage",170));
 }
 
 void loading_bar()
@@ -940,18 +1517,22 @@ int calculate_attack_damage(int character_damage,int mob_damage_protection) {
     int attack_damage = (int)(character_damage * damage_multiplier) - mob_damage_protection;
     return attack_damage > 0 ? attack_damage : 0;
 }
-int calculate_attack_damage_mob(int character_protection,int mob_damage) {
+int calculate_attack_damage_mob(int character_protection, int mob_damage) {
     float damage_multiplier = 0.1;
-    if (rand() % 100 < 10)
-    {
-        damage_multiplier = 0.3;
-    }
-    else if (rand() % 100 < 5)
+    int miss_chance = 10;
+    if (rand() % 100 < miss_chance)
     {
         return 0;
     }
-    int attack_damage = (int)(mob_damage * damage_multiplier) - character_protection;
-    return attack_damage > 0 ? attack_damage : 0;
+    else
+    {
+        if (rand() % 100 < 10)
+        {
+            damage_multiplier = 0.3;
+        }
+        int attack_damage = (int)(mob_damage * damage_multiplier) - character_protection % 4;
+        return attack_damage > 0 ? attack_damage : 0;
+    }
 }
 
 
@@ -959,98 +1540,173 @@ void Game::game_itself(Player &x)
 {
     loading_bar();
     this->initializate_shop();
-    cout << this->s;
-    Mob Giant(100,100,70,50);
-    cout << "You are face to face with a giant?\n";
-    cout << "How you attack?\n";
-    while(x.get_hp() > 0 && Giant.get_hp() > 0)
+    for(auto&level : this->d.getLevels())
     {
-        cout << "1.Normal Damage using your weapon\n";
-        cout << "2.Use one of your abilities\n";
-        cout << "3.Check your stats\n";
-        cout << "4.Save your character\n";
-        int option;
-        cin >> option;
-        if (option == 1)
+        if(x.get_hp() > 0 && this->d.endDungeon() == false)
         {
-            int damage = calculate_attack_damage(x.get_strength(),0);
-            if (damage == 0)
-            {
-                cout << "You missed the target." << "\n";
-            }
-            else {
-                cout << "You deal " << damage << " damage to the enemy." << "\n";
-                double new_hp = Giant.get_hp() - damage;
-                Giant.modify_health(new_hp);
-                cout << "Now Giant's health is : " << Giant.get_hp() << "\n";
-            }
-            damage = calculate_attack_damage_mob(x.get_defense(),Giant.get_dmg());
-            if (damage == 0)
-            {
-                cout << "The enemy missed you." << "\n";
-            }
-            else {
-                cout << "The enemy deal " << damage << " damage to the you." << "\n";
-                double new_hp = x.get_hp() - damage;
-                x.set_hp(new_hp);
-                cout << "Your health now is " << x.get_hp() << "\n";
-            }
+            system("clear");
+            cout << "You are now on this level of the dungeon: " << this->d.get_currentLevel();
         }
-        else if(option == 2)
+        for(auto&mob: level)
         {
-            cout << "Which one of your abilities you want to use?\n";
-            int num_abilities = x.get_number_of_abilities();
-            for(int i = 0; i < num_abilities; i++)
+            double currentmobhealth = mob->get_hp();
+            if(x.get_hp() > 0 && this->d.endDungeon() == false)
             {
-                cout << i+1 << "." << x.get_ability(i);
-            }
-            cout << num_abilities + 1 << "." << "Return to the damage menu\n";
-            int option_ability;
-            cin >> option_ability;
-            if(option_ability != num_abilities + 1)
-            {
-                double damage = calculate_attack_ability(x.get_ability(option_ability-1).get_damage(), Giant.get_protection());
-                if(damage == 0)
+                system("clear");
+                if(dynamic_cast<Skeleton*>(mob) != nullptr)
                 {
-                    cout << "You missed the target." << "\n";
+                    cout << "You are face to face with a skeleton\n";
                 }
-                else
+                else if(dynamic_cast<Zombie*>(mob) != nullptr)
                 {
-                    cout << "You deal " << damage << " damage to the enemy." << "\n";
-                    double new_hp = Giant.get_hp() - damage;
-                    Giant.modify_health(new_hp);
-                    cout << "Now Giant's health is : " << Giant.get_hp() << "\n";
+                    cout << "You are face to face with a zombie\n";
                 }
-                damage = calculate_attack_damage_mob(x.get_defense(),Giant.get_dmg());
-                if (damage == 0)
+                if(dynamic_cast<Wraith*>(mob) != nullptr)
                 {
-                    cout << "The enemy missed you." << "\n";
+                    cout << "You are face to face with a wraith\n";
                 }
-                else {
-                    cout << "The enemy deal " << damage << " damage to the you." << "\n";
-                    double new_hp = x.get_hp() - damage;
-                    x.set_hp(new_hp);
-                    cout << "Your health now is " << x.get_hp() << "\n";
+                cout << "How you attack?\n";
+                while(x.get_hp() > 0 && mob->get_hp() > 0)
+                {
+                    cout << "1.Normal Damage using your weapon\n";
+                    cout << "2.Use one of your abilities\n";
+                    cout << "3.Check your stats\n";
+                    cout << "4.Go to shop\n";
+                    cout << "5.Save your character\n";
+                    int option;
+                    cin >> option;
+                    if (option == 1)
+                    {
+                        int damage = calculate_attack_damage(x.get_strength(),0);
+                        if (damage == 0)
+                        {
+                            cout << "You missed the target." << "\n";
+                        }
+                        else {
+                            cout << "You deal " << damage << " damage to the enemy." << "\n";
+                            double new_hp = mob->get_hp() - damage;
+                            mob->modify_health(new_hp);
+                            if(dynamic_cast<Skeleton*>(mob) != nullptr)
+                            {
+                                cout << "Now skeleton's health is : " << mob->get_hp() << "\n";
+                            }
+                            else if(dynamic_cast<Zombie*>(mob) != nullptr)
+                            {
+                                cout << "Now zombie's health is : " << mob->get_hp() << "\n";
+                            }
+                            else if(dynamic_cast<Wraith*>(mob) != nullptr)
+                            {
+                                cout << "Now wraith's health is : " << mob->get_hp() << "\n";
+                            }
+                        }
+                        damage = calculate_attack_damage_mob(x.get_defense(),mob->get_dmg());
+                        if (damage == 0)
+                        {
+                            cout << "The enemy missed you." << "\n";
+                        }
+                        else {
+                            cout << "The enemy deal " << damage << " damage to the you." << "\n";
+                            double new_hp = x.get_hp() - damage;
+                            x.set_hp(new_hp);
+                            cout << "Your health now is " << x.get_hp() << "\n";
+                        }
+                    }
+                    else if(option == 2)
+                    {
+                        cout << "Which one of your abilities you want to use?\n";
+                        int num_abilities = x.get_number_of_abilities();
+                        for(int i = 0; i < num_abilities; i++)
+                        {
+                            cout << i+1 << "." << x.get_ability(i);
+                        }
+                        cout << num_abilities + 1 << "." << "Return to the damage menu\n";
+                        int option_ability;
+                        cin >> option_ability;
+                        if(option_ability != num_abilities + 1)
+                        {
+                            double damage = calculate_attack_ability(x.get_ability(option_ability-1).get_damage(), mob->get_protection());
+                            if(damage == 0)
+                            {
+                                cout << "You missed the target." << "\n";
+                            }
+                            else
+                            {
+                                cout << "You deal " << damage << " damage to the enemy." << "\n";
+                                double new_hp = mob->get_hp() - damage;
+                                mob->modify_health(new_hp);
+                                if(dynamic_cast<Skeleton*>(mob) != nullptr)
+                                {
+                                    cout << "Now skeleton's health is : " << mob->get_hp() << "\n";
+                                }
+                                else if(dynamic_cast<Zombie*>(mob) != nullptr)
+                                {
+                                    cout << "Now zombie's health is : " << mob->get_hp() << "\n";
+                                }
+                                else if(dynamic_cast<Wraith*>(mob) != nullptr)
+                                {
+                                    cout << "Now wraith's health is : " << mob->get_hp() << "\n";
+                                }
+                            }
+                            damage = calculate_attack_damage_mob(x.get_defense(),mob->get_dmg());
+                            if (damage == 0)
+                            {
+                                cout << "The enemy missed you." << "\n";
+                            }
+                            else {
+                                cout << "The enemy deal " << damage << " damage to the you." << "\n";
+                                double new_hp = x.get_hp() - damage;
+                                x.set_hp(new_hp);
+                                cout << "Your health now is " << x.get_hp() << "\n";
+                            }
+                        }
+                    }
+                    else if (option == 3)
+                    {
+                        cout << x;
+                    }
+                    else if(option == 5)
+                    {
+                        try
+                        {
+                            if(mob->get_hp() != currentmobhealth)
+                            {
+                                throw HealthMismatchException();
+                            }
+                            save_game(x, "/Users/rarestudur/Developer/C++/Proiect/savegame.txt");
+                        }catch(HealthMismatchException &e)
+                            {
+                                cerr <<e.what() << "\n";
+                            }                    }
+                    else if (option == 4)
+                    {
+                        try
+                        {
+                            if(mob->get_hp() != currentmobhealth)
+                            {
+                                throw HealthMismatchException();
+                            }
+                            cout << "What do you want to buy\n";
+                            cout << this->s;
+                            int option_shop;
+                            cin >> option_shop;
+                            s.buy(x, s.getItem(option_shop-1));
+                        }catch(HealthMismatchException &e)
+                            {
+                                cerr <<e.what() << "\n";
+                            }
+                    }
+                }
+                if(x.get_hp() <= 0)
+                {
+                    cout << "You lost\n";
+                }
+                else if (mob->get_hp() <= 0)
+                {
+                    cout << "You won, the giant has been defeated!!!\n";
                 }
             }
         }
-        else if (option == 3)
-        {
-            cout << x;
-        }
-        else if(option == 4)
-        {
-            save_game(x, "/Users/rarestudur/Developer/C++/Proiect/savegame.txt");
-        }
-           
-    }
-    if(x.get_hp() <= 0)
-    {
-        cout << "You lost\n";
-    }
-    else if (Giant.get_hp() <= 0)
-    {
-        cout << "You won, the giant has been defeated!!!\n";
+        this->d.nextLevel();
     }
     return ;
 }
