@@ -1672,7 +1672,7 @@ void Game::game_itself(Player &x)
                             {
                                 throw HealthMismatchException();
                             }
-                            save_game(x, "/Users/rarestudur/Developer/C++/Proiect/savegame.txt");
+                            //save_game(x);
                         }catch(HealthMismatchException &e)
                             {
                                 cerr <<e.what() << "\n";
