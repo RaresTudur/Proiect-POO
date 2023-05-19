@@ -339,6 +339,7 @@ public:
     virtual string getName() const = 0;
     virtual string getDescription() const = 0;
     virtual int requiredprice() const = 0;
+    virtual void update_price(int new_price) = 0;
     virtual string requiredClass() const = 0;
 };
 
@@ -350,13 +351,14 @@ ostream& operator<<(ostream& os, const Item& item) {
     return os;
 }
 
-class Inventory {
-    
+class Inventory
+{
     static int MAX_CAPACITY;
 protected:
     vector <Item*> items;
 
 public:
+    static int get_capacity();
     int get_size() const;
     Item* getItem(int poz);
     vector <Item*> getitems() const;
@@ -365,6 +367,11 @@ public:
 };
 
 int Inventory::MAX_CAPACITY = 10;
+
+int Inventory::get_capacity()
+{
+   return MAX_CAPACITY;
+}
 
 vector <Item*> Inventory::getitems() const
 {
@@ -502,12 +509,19 @@ public:
     string getDescription() const override;
     string requiredClass() const override;
     int requiredprice() const override;
+    void update_price(int new_price) override;
     friend ostream & operator << (ostream &out, const Armor &x);
     friend ofstream & operator << (ofstream &output, const Armor &x);
     friend istream & operator >> (istream &in, Armor &x);
     friend ifstream & operator >> (ifstream &input, Armor &x);
     virtual ~Armor() override = default;
 };
+
+
+void Armor:: update_price(int new_price)
+{
+    this->price = new_price;
+}
 
 Armor::operator Armor *()
 {
@@ -556,7 +570,7 @@ int Armor::requiredprice() const
 ostream & operator << (ostream &out, const Armor &x)
 {
     out << "The name and the armor value of your armor is\n";
-    out << x.armor_name << " " << x.armor_value << " " << x.requiredclass << " " << x.price << "\n";
+    out << x.armor_name << " " << x.armor_value << " " << " " << x.price << "\n";
     return out;
 }
 ofstream & operator << (ofstream &output, const Armor &x)
@@ -603,12 +617,19 @@ public:
     string getDescription() const override;
     string requiredClass() const override;
     int requiredprice() const override;
+    void update_price(int new_price) override;
     friend ostream & operator << (ostream &out, const Weapon &x);
     friend ofstream & operator << (ofstream &output, const Weapon &x);
     friend istream & operator >> (istream &in, Weapon &x);
     friend ifstream & operator >> (ifstream &input, Weapon &x);
     ~Weapon() override = default;
 };
+
+
+void Weapon::update_price(int new_price)
+{
+    this->price = new_price;
+}
 
 Weapon::operator Weapon *()
 {
@@ -712,6 +733,7 @@ public:
             this->abilities = new Ability[num_abilities];
         }
     }
+    void add_money(int value = 0);
     string get_mume() const;
     int get_hp() const;
     int get_defense() const;
@@ -795,12 +817,17 @@ ostream & operator << (ostream &out, const Player &x)
     out << "Intelligence: " << x.intelligence << "\n";
     out << "Gold: " << x.gold << "\n";
     out << x.equiped_weapon;
+    if(x.equiped_armor.get_armor_value() != 0)
+    {
+        out << x.equiped_armor;
+    }
     out << "Number of abilities: " << x.num_abilities << "\n";
     out << "The name and damage of each ability : \n";
     for(int i = 0; i < x.num_abilities; i++)
     {
         cout << x.abilities[i];
     }
+    out << "The size of your inventory is: " <<  x.inventory.get_capacity() << "\n";
     out << "Items in inventory:\n";
     for(auto item: x.inventory.getitems())
     {
@@ -920,6 +947,11 @@ ifstream& operator>>(ifstream& input, Player &x)
     return input;
 }
 
+void Player::add_money(int value)
+{
+    this->gold += value;
+    cout << "Now you have " << this->gold << " in your pochet!\n";
+}
 
 void Player::set_name(const char name[])
 {
@@ -1243,7 +1275,10 @@ void load_game(Player &x, string filename)
 class Shop: public Inventory
 {
     static int Max_capacity;
+    static bool come_to_shop;
 public:
+    static void CheckCameToShop();
+    static void setCometoShop(bool value = true);
     Shop(int capacity = 30);
     bool add_item(Item* item);
     void remove_item(const string& item_name);
@@ -1253,6 +1288,23 @@ public:
 };
 
 int Shop::Max_capacity = 30;
+bool Shop::come_to_shop = false;
+
+void Shop::CheckCameToShop()
+{
+    if(Shop::come_to_shop == false)
+    {
+        cout << "Vulgrim: Ah, seeker of power and protection, you've stumbled upon my humble domain. Behold, my collection of formidable armors and wickedly crafted swords, fit for those who dare walk the line between heroism and... darker pursuits. Care to enhance your might with a touch of elegance and a hint of danger? Step closer, and let us delve into the shadows of possibilities\n ";
+        this_thread::sleep_for(chrono::milliseconds(6000));
+    }
+    return;
+}
+
+void Shop::setCometoShop(bool value)
+{
+    Shop::come_to_shop = value;
+}
+
 
 Shop::Shop(int capacity)
 {
@@ -1297,6 +1349,7 @@ void Shop::buy(Player& player, Item* item)
         {
             throw ClassMismatchException();
         }
+        item->update_price((item->requiredprice() - item->requiredprice() * 0.25));
         player.getInventory().add_item(item);
         cout << "Item added to player's inventory: " << item->getName() << "\n";
         this->remove_item(item->getName());
@@ -1572,7 +1625,7 @@ void Game::game_itself(Player &x)
                     cout << "2.Use one of your abilities\n";
                     cout << "3.Check your stats\n";
                     cout << "4.Go to shop\n";
-                    cout << "5.Save your character\n";
+                    //cout << "5.Save your character\n";
                     int option;
                     cin >> option;
                     if (option == 1)
@@ -1664,19 +1717,19 @@ void Game::game_itself(Player &x)
                     {
                         cout << x;
                     }
-                    else if(option == 5)
-                    {
-                        try
-                        {
-                            if(mob->get_hp() != currentmobhealth)
-                            {
-                                throw HealthMismatchException();
-                            }
-                            //save_game(x);
-                        }catch(HealthMismatchException &e)
-                            {
-                                cerr <<e.what() << "\n";
-                            }                    }
+//                    else if(option == 5)
+//                    {
+//                        try
+//                        {
+//                            if(mob->get_hp() != currentmobhealth)
+//                            {
+//                                throw HealthMismatchException();
+//                            }
+//                            //save_game(x);
+//                        }catch(HealthMismatchException &e)
+//                            {
+//                                cerr <<e.what() << "\n";
+//                            }                    }
                     else if (option == 4)
                     {
                         try
@@ -1685,10 +1738,17 @@ void Game::game_itself(Player &x)
                             {
                                 throw HealthMismatchException();
                             }
+                            this->s.CheckCameToShop();
+                            this->s.setCometoShop();
                             cout << "What do you want to buy\n";
                             cout << this->s;
                             int option_shop;
-                            cin >> option_shop;
+                            while (!(cin >> option_shop) || option_shop < 0 || option_shop > 23)
+                            {
+                                cin.clear();
+                                cin.ignore(INT_MAX, '\n');
+                                cout << "Invalid input. Try again" << "\n";
+                            }
                             s.buy(x, s.getItem(option_shop-1));
                         }catch(HealthMismatchException &e)
                             {
@@ -1702,7 +1762,19 @@ void Game::game_itself(Player &x)
                 }
                 else if (mob->get_hp() <= 0)
                 {
-                    cout << "You won, the giant has been defeated!!!\n";
+                    if(dynamic_cast<Skeleton*>(mob) != nullptr)
+                    {
+                        cout << "You won, the skeleton has been defeated!!!: " << mob->get_hp() << "\n";
+                    }
+                    else if(dynamic_cast<Zombie*>(mob) != nullptr)
+                    {
+                        cout << "You won, the zombie has been defeated!!!: " << mob->get_hp() << "\n";
+                    }
+                    else if(dynamic_cast<Wraith*>(mob) != nullptr)
+                    {
+                        cout << "You won, the wraith has been defeated!!!: " << mob->get_hp() << "\n";
+                    }
+                    x.add_money(50);
                 }
             }
         }
@@ -1720,13 +1792,13 @@ int main(int argc, const char * argv[]) {
     while(inmenu)
     {
         system("clear");
-        if(Menu.display_load() == true)
-        {
-            Player x;
-            load_game(x, "savegame.txt");
-            G.game_itself(x);
-        }
-        else
+//        if(Menu.display_load() == true)
+//        {
+//            Player x;
+//            load_game(x, "savegame.txt");
+//            G.game_itself(x);
+//        }
+        //else
         {
             Menu.display_class();
             int option;
