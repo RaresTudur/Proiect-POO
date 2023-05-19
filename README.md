@@ -4,12 +4,6 @@
 ![Game Version](https://img.shields.io/badge/version-1.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## 📖 Table of Contents
-
-- [Synopsis](##Synopsis)
-- [Installation](##installation)
-- [Creator](#Creator)
-
 
 ## Synopsis
 You are a citizen of the Vik kingdom, who must save your king, Loha, from the demon Exilof. You will have to fight a host of creatures to reach the end of the cave where Exilof is hiding Loha.
@@ -31,25 +25,24 @@ You can choose to be one of the following classes that exist in this world, and 
 
 ## ⚔️ How will this character fight?
 
-To be able to save the king, you'll need certain items to help you defeat enemies that will stand in your way. So you'll have the entrance to the dungeon a sword, or a staff, but it will not be enough to be able to save the king. So you will be able to purchase armor and swords more powerful and suitable to be able to carry out the mission from Vulgrim, a former commander of the royal army.
+To be able to save the king, you'll need certain items to help you defeat the enemies that will stand in your way. As you enter the dungeon, you'll have a choice between a sword or a staff, but these alone will not be enough to rescue the king. 
 
-## Tema:
-📚 Tema aleasa pentru proiect a fost un joc text rpg, cu urmatoarele clase:
+To increase your chances of success, you will be able to purchase more powerful and suitable armor and swords from Vulgrim, a former commander of the royal army. He will provide you with the necessary equipment to carry out your mission and face the daunting challenges ahead.
 
-- String, o clasa custom care implemeteaza functionalitati similar cu clasa string din libraria standard C++.
-- Player, clasa principala a jocului unde se afla toate caracteristicile personajului principal, precum nume, viata, nivelul de viteza, protectie, atac, etc
-- Clasele : Warrior, Mage, Rogue, Cleric si Orc care reprezinta principalele clase in care personajul poate sa fie
-- Mob, clasa inamicilor, unde vor fi continute toate caracteristicile inamicilor, precum viata si atac
-- Weapon, o clasa in care se vor afla toate caracteristicile tuturor armelor din joc
-- Ability, o clasa unde se afla toate detaliile fiecarei abilitati din joc
-- Menu, clasa care gestioneaza creearea personajului principal
+Prepare yourself, gather the right gear, and embark on this perilous journey to save the king and restore peace to the realm.
+## 💡Game Features
 
-## 💡 Functionalitatile jocului:
+This RPG incorporates the following exciting features:
 
-- Afisarea pe ecran a unui menu interactiv
-- Creearea propriului personaj, cu alegerea fiecarui detaliu al sau
-- Posibilitatea de a lupta contra unui inamic
+- **Shop System**: Explore a shop where players can purchase armor and swords to increase their stats. However, these items are class-restricted. For instance, armor designed for a warrior cannot be bought by a mage.
 
+- **Multi-Level Dungeon**: Experience a multi-level dungeon with three types of monsters: zombies, skeletons, and wraiths. Prepare for the ultimate challenge as you face the final boss, Exilof , a fearsome mutation of a demon and a wraith.
+
+- **Character Customization**: Enjoy the freedom to create your own character with fully customizable stats. Define your character's life, defense, attack, and choose their skills, weapons, and armor.
+
+- **Inventory System**: Manage your inventory to carry different armors and swords for special situations. Stay prepared for various encounters by equipping the most suitable gear.
+
+- **Item Value System**: Keep an eye on the value of the items you own. Vulgrim, the vendor, aims for maximum profit, so the items bought from him lose a significant portion of their original value.
 
 ## 𐀪 Creator:
 - Tudur Rares, Grupa 142
